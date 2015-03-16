@@ -1,0 +1,171 @@
+---
+title: "Machine Learning Course Project"
+author: "Shailesh Patel"
+date: "March 22, 2015"
+output:
+  html_document:
+    keep_md: yes
+---
+
+#Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+#Reproducibility
+We will first load the necessary libraries and set the seed.
+```{r, echo=TRUE}
+# select CRAN mirror globally
+r <- getOption("repos")
+r["CRAN"] <- "http://cran.us.r-project.org"
+options(repos = r)
+rm(r)
+
+# Install and load the libraries we will need - only if needed
+list.of.packages <- c("caret", "kernlab", "randomForest", "Hmisc", "abind", "arm", "rpart")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+library(caret)
+library(kernlab)
+library(randomForest)
+library(Hmisc)
+library(abind)
+library(arm)
+library(rpart)
+
+set.seed(8666)
+```
+
+#Data 
+##Load Libraries and Download Data
+The training data for this project wre loaded from the following URLs:
+
+Training data:  https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+Test data: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+Download the data for training and for final testing.
+```{r, echo=TRUE}
+trainingcsv <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testingcsv <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+download.file(trainingcsv, "pml-training.csv", method="curl")
+download.file(testingcsv, "pml-testing.csv", method="curl")
+
+date() # Log the date and time when the file is downloaded
+
+trainingData <- read.csv("pml-training.csv")
+finalTestingData <- read.csv("pml-testing.csv")
+```
+
+##Cleaning Data
+Make sure all the column names between the training and testing data sets are identical. 
+
+```{r}
+all.equal(colnames(finalTestingData)[1:length(colnames(finalTestingData))-1], colnames(trainingData)[1:length(colnames(trainingData))-1])
+```
+To clean the data, we are first removing the near zero variance variables. Many variables have a high degree of correlation. 
+```{r}
+nzvValues <- nearZeroVar(trainingData)
+trainingData <- trainingData[, -nzvValues]
+dim(trainingData)
+```
+We then remove the first five columns of the training data id, user names, and time stamps are not very useful with models.  
+```{r}
+# Remove the first "id" column
+trainingData <- trainingData[, -(1:5)]
+dim(trainingData)
+```
+Lastly, we remove columns with too many NA's. We want to reduce columns with more than 60% missing data.  
+```{r}
+remove <- sapply(colnames(trainingData), function(x) if(sum(is.na(trainingData[, x])) > 0.60*nrow(trainingData))    {return(TRUE)
+}else {
+return(FALSE)})
+trainingData <- trainingData[, !remove]
+dim(trainingData)
+```
+After cleaning the data the following columns are included in the models.
+```{r}
+names(trainingData)
+```
+
+##Partitioning Data
+We'll first partition the data so that 60% of the data will be used for training and 40% will be used for testing the models. 
+```{r, echo=TRUE}
+inTrain <- createDataPartition(y=trainingData$classe, p=0.6, list=FALSE)
+modelTraining <- trainingData[inTrain, ]
+modelTesting <- trainingData[-inTrain, ]
+dim(modelTraining) 
+dim(modelTesting)
+```
+
+#Model Development
+##Selecting a Model
+We can now create models based on the pre-processed data set. In order to avoid overfitting and to reduce out of sample errors, we use TrainControl to perform 7-fold cross validation. Six models are estimated: Random forest, Support Vector Machine (both radial and linear), a Neural net, a Bayes Generalized linear model and a Logit Boosted model.
+
+```{r, }
+modelCTRL <- trainControl(method = "cv", number = 7, verboseIter=FALSE , preProcOptions="pca", allowParallel=TRUE)
+rf <- train(classe ~ ., data = modelTraining, method = "rf", trControl= modelCTRL, verbose=FALSE)
+svmr <- train(classe ~ ., data = modelTraining, method = "svmRadial", trControl= modelCTRL, verbose=FALSE)
+NN <- train(classe ~ ., data = modelTraining, method = "nnet", trControl= modelCTRL, verbose=FALSE)
+svml <- train(classe ~ ., data = modelTraining, method = "svmLinear", trControl= modelCTRL, verbose=FALSE)
+bayesglm <- train(classe ~ ., data = modelTraining, method = "bayesglm", trControl= modelCTRL, verbose=FALSE)
+logitboost <- train(classe ~ ., data = modelTraining, method = "LogitBoost", trControl= modelCTRL, verbose=FALSE)
+```
+
+Let's compare the accuracy of the models.
+```{r}
+model <- c("Random Forest", "SVM (radial)","LogitBoost","SVM (linear)","Neural Net", "Bayes GLM")
+Accuracy <- c(max(rf$results$Accuracy),
+        max(svmr$results$Accuracy),
+        max(logitboost$results$Accuracy),
+        max(svml$results$Accuracy),
+        max(NN$results$Accuracy),
+        max(bayesglm$results$Accuracy))
+        
+Kappa <- c(max(rf$results$Kappa),
+        max(svmr$results$Kappa),
+        max(logitboost$results$Kappa),
+        max(svml$results$Kappa),
+        max(NN$results$Kappa),
+        max(bayesglm$results$Kappa))  
+
+performance <- cbind(model,Accuracy,Kappa)
+knitr::kable(performance)
+```
+
+##Cross Validation
+We now use the modFit to predict new values within the test set that we created for for random forest and SVM(radial) models.  
+
+```{r}
+rfPred <- predict(rf, modelTesting)
+svmrPred <- predict(svmr, modelTesting)
+```
+
+Checking if the models give same predictions
+
+```{r}
+prediction <- data.frame(cbind(rfPred, svmrPred))
+prediction$same <- with(prediction, rfPred == svmrPred)
+colnames(prediction) <- c("Random Forest", "SVM (radial)", "Same Prediction")
+```
+
+We can calculate the expected out of sample error based on the test set that we created for cross-validation:
+
+```{r}
+cfM <- confusionMatrix(rfPred, modelTraining$classe)
+cfM
+```
+
+#Prediction Submission
+Generate the files for submission using the test data provided.
+```{r}
+answers <- predict(rf, finalTestingData)
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(answers)
+```
