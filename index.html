@@ -226,13 +226,17 @@ neural &lt;- train(classe ~ ., data = modelTraining, method = "nnet", trControl=
 ## iter 100 value 16808.585949
 ## final  value 16808.585949 
 ## stopped after 100 iterations</code></pre>
-<pre><code>svml &lt;- train(classe ~ ., data = modelTraining, method = "svmLinear", trControl= modelCTRL)
-bayesglm &lt;- train(classe ~ ., data = modelTraining, method = "bayesglm", trControl= modelCTRL)
-logitboost &lt;- train(classe ~ ., data = modelTraining, method = "LogitBoost", trControl= modelCTRL)</code></pre>
+<pre><code>svml &lt;- train(classe ~ ., data = modelTraining, method = "svmLinear",  
+trControl= modelCTRL)
+bayesglm &lt;- train(classe ~ ., data = modelTraining, method = "bayesglm",  
+trControl= modelCTRL)
+logitboost &lt;- train(classe ~ ., data = modelTraining, method = "LogitBoost",   
+trControl= modelCTRL)</code></pre>
 <pre><code>## Loading required package: caTools</code></pre>
 <pre><code>stopCluster(clust)</code></pre>
 <p>Let’s compare the accuracy of the models. Random Forest, LogitBoost, and SVM (radial) have the best accuracy of all size models.</p>
-<pre><code>model &lt;- c("Random Forest","LogitBoost","SVM (radial)", "SVM (linear)", "Neural Net", "Bayes GLM")
+<pre><code>model &lt;- c("Random Forest","LogitBoost",  
+"SVM (radial)", "SVM (linear)", "Neural Net", "Bayes GLM")
 Accuracy &lt;- c(max(randomForest$results$Accuracy),
          max(logitboost$results$Accuracy),
          max(svmr$results$Accuracy),
@@ -300,16 +304,21 @@ knitr::kable(performance)</code></pre>
 logitboostPrediction &lt;- predict(logitboost, modelTesting)
 svmrPrediction &lt;- predict(svmr, modelTesting)</code></pre>
 <p>Let’s check to see if the models give same predictions. Random Forest and LogitBoost provide the greatest number of matches.</p>
-<pre><code>firstPrediction &lt;- data.frame(cbind(randomForestPrediction, logitboostPrediction))
-firstPrediction$same &lt;- with(firstPrediction, randomForestPrediction == logitboostPrediction)
-colnames(firstPrediction) &lt;- c("Random Forest", "LogitBoost", "SamePrediction")
+<pre><code>firstPrediction &lt;- data.frame(cbind(randomForestPrediction,  
+logitboostPrediction))
+firstPrediction$same &lt;- with(firstPrediction,   
+randomForestPrediction == logitboostPrediction)
+colnames(firstPrediction) &lt;- c("Random Forest", "LogitBoost",  
+"SamePrediction")
 
 # Number of matches between Random Forest and LogitBoost
 dim(firstPrediction[firstPrediction$SamePrediction==TRUE,])</code></pre>
 <pre><code>## [1] 7407    3</code></pre>
-<pre><code>secondPrediction &lt;- data.frame(cbind(randomForestPrediction, svmrPrediction))
+<pre><code>secondPrediction &lt;- data.frame(cbind(randomForestPrediction,   
+svmrPrediction))
 secondPrediction$same &lt;- with(secondPrediction, randomForestPrediction == svmrPrediction)
-colnames(secondPrediction) &lt;- c("Random Forest", "SVM (radial)", "SamePrediction")
+colnames(secondPrediction) &lt;- c("Random Forest", "SVM (radial)",   
+"SamePrediction")
 
 # Number of matches between Random Forest and SVM (radial)
 dim(secondPrediction[secondPrediction$SamePrediction==TRUE,])</code></pre>
