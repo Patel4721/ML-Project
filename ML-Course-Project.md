@@ -131,7 +131,7 @@ date() # Log the date and time when the file is downloaded
 ```
 
 ```
-## [1] "Mon Mar 16 21:16:55 2015"
+## [1] "Mon Mar 16 23:35:47 2015"
 ```
 
 ```r
@@ -259,18 +259,18 @@ neural <- train(classe ~ ., data = modelTraining, method = "nnet", trControl= mo
 
 ```
 ## # weights:  300
-## initial  value 23498.420355 
-## iter  10 value 18152.661867
-## iter  20 value 17838.638017
-## iter  30 value 17651.741453
-## iter  40 value 17253.024783
-## iter  50 value 17197.447452
-## iter  60 value 17115.489691
-## iter  70 value 17078.074376
-## iter  80 value 16996.162075
-## iter  90 value 16923.557894
-## iter 100 value 16808.585949
-## final  value 16808.585949 
+## initial  value 23503.680401 
+## iter  10 value 18281.619047
+## iter  20 value 17962.866579
+## iter  30 value 17154.108235
+## iter  40 value 16969.304281
+## iter  50 value 16803.429215
+## iter  60 value 16650.033797
+## iter  70 value 16504.447574
+## iter  80 value 16480.448570
+## iter  90 value 16375.929941
+## iter 100 value 16315.117373
+## final  value 16315.117373 
 ## stopped after 100 iterations
 ```
 
@@ -319,10 +319,10 @@ Random Forest   0.994735472091063   0.993340443450489
 LogitBoost      0.92972348753086    0.910549154246006 
 SVM (radial)    0.917714570664534   0.895782596238381 
 SVM (linear)    0.787109308208236   0.729396971598701 
-Neural Net      0.429100417143813   0.272357745643895 
+Neural Net      0.431975847961046   0.280604261183444 
 Bayes GLM       0.401239518617301   0.234750696831903 
 
-##Cross Validation
+##Cross Validation and Out of Sample Error
 We now predict new values within the test set that we created for random forest, LogitBoost, and SVM(radial) models.  
 
 
@@ -361,12 +361,11 @@ dim(secondPrediction[secondPrediction$SamePrediction==TRUE,])
 ## [1] 7306    3
 ```
 
-We can calculate the expected out of sample error based on the test set that we created for cross-validation -- using the Random Forest model.  The prediction results with random forest are encouraging in looking at the confusion matrix.  
+We can calculate the expected out of sample error based on the test set that we created for cross-validation -- using the Random Forest model.  The accuracy of the Random Forest model is 99.4735472%. So I expect the out of sample error estimate to be less than 41.305486, where 7,846 is the number of rows in the modelTesting dataset. The prediction results with random forest are encouraging in looking at the confusion matrix.  The confusionMatrix shows that 24 predictions are inaccurate, which is better than my expected out of sample error estimate.  
 
 
 ```r
-# note:  Column 54 is the "classe" column
-myMatrix <- confusionMatrix(randomForestPrediction, modelTesting[, 54])
+myMatrix <- confusionMatrix(randomForestPrediction, modelTesting[, "classe"])
 myMatrix
 ```
 

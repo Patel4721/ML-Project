@@ -142,7 +142,7 @@ download.file(trainingcsv, &quot;pml-training.csv&quot;, method=&quot;curl&quot;
 download.file(testingcsv, &quot;pml-testing.csv&quot;, method=&quot;curl&quot;)
 
 date() # Log the date and time when the file is downloaded</code></pre>
-<pre><code>## [1] &quot;Mon Mar 16 21:16:55 2015&quot;</code></pre>
+<pre><code>## [1] &quot;Mon Mar 16 23:35:47 2015&quot;</code></pre>
 <pre class="r"><code>trainingData &lt;- read.csv(&quot;pml-training.csv&quot;)
 finalTestingData &lt;- read.csv(&quot;pml-testing.csv&quot;)</code></pre>
 </div>
@@ -219,18 +219,18 @@ svmr &lt;- train(classe ~ ., data = modelTraining, method = &quot;svmRadial&quot
 neural &lt;- train(classe ~ ., data = modelTraining, method = &quot;nnet&quot;, trControl= modelCTRL)</code></pre>
 <pre><code>## Loading required package: nnet</code></pre>
 <pre><code>## # weights:  300
-## initial  value 23498.420355 
-## iter  10 value 18152.661867
-## iter  20 value 17838.638017
-## iter  30 value 17651.741453
-## iter  40 value 17253.024783
-## iter  50 value 17197.447452
-## iter  60 value 17115.489691
-## iter  70 value 17078.074376
-## iter  80 value 16996.162075
-## iter  90 value 16923.557894
-## iter 100 value 16808.585949
-## final  value 16808.585949 
+## initial  value 23503.680401 
+## iter  10 value 18281.619047
+## iter  20 value 17962.866579
+## iter  30 value 17154.108235
+## iter  40 value 16969.304281
+## iter  50 value 16803.429215
+## iter  60 value 16650.033797
+## iter  70 value 16504.447574
+## iter  80 value 16480.448570
+## iter  90 value 16375.929941
+## iter 100 value 16315.117373
+## final  value 16315.117373 
 ## stopped after 100 iterations</code></pre>
 <pre class="r"><code>svml &lt;- train(classe ~ ., data = modelTraining, method = &quot;svmLinear&quot;, trControl= modelCTRL)
 bayesglm &lt;- train(classe ~ ., data = modelTraining, method = &quot;bayesglm&quot;, trControl= modelCTRL)
@@ -286,8 +286,8 @@ knitr::kable(performance)</code></pre>
 </tr>
 <tr class="odd">
 <td align="left">Neural Net</td>
-<td align="left">0.429100417143813</td>
-<td align="left">0.272357745643895</td>
+<td align="left">0.431975847961046</td>
+<td align="left">0.280604261183444</td>
 </tr>
 <tr class="even">
 <td align="left">Bayes GLM</td>
@@ -297,8 +297,8 @@ knitr::kable(performance)</code></pre>
 </tbody>
 </table>
 </div>
-<div id="cross-validation" class="section level2">
-<h2>Cross Validation</h2>
+<div id="cross-validation-and-out-of-sample-error" class="section level2">
+<h2>Cross Validation and Out of Sample Error</h2>
 <p>We now predict new values within the test set that we created for random forest, LogitBoost, and SVM(radial) models.</p>
 <pre class="r"><code>randomForestPrediction &lt;- predict(randomForest, modelTesting)
 logitboostPrediction &lt;- predict(logitboost, modelTesting)
@@ -318,9 +318,8 @@ colnames(secondPrediction) &lt;- c(&quot;Random Forest&quot;, &quot;SVM (radial)
 # Number of matches between Random Forest and SVM (radial)
 dim(secondPrediction[secondPrediction$SamePrediction==TRUE,])</code></pre>
 <pre><code>## [1] 7306    3</code></pre>
-<p>We can calculate the expected out of sample error based on the test set that we created for cross-validation – using the Random Forest model. The prediction results with random forest are encouraging in looking at the confusion matrix.</p>
-<pre class="r"><code># note:  Column 54 is the &quot;classe&quot; column
-myMatrix &lt;- confusionMatrix(randomForestPrediction, modelTesting[, 54])
+<p>We can calculate the expected out of sample error based on the test set that we created for cross-validation – using the Random Forest model. The accuracy of the Random Forest model is 99.4735472%. So I expect the out of sample error estimate to be less than 41.305486, where 7,846 is the number of rows in the modelTesting dataset. The prediction results with random forest are encouraging in looking at the confusion matrix. The confusionMatrix shows that 24 predictions are inaccurate, which is better than my expected out of sample error estimate.</p>
+<pre class="r"><code>myMatrix &lt;- confusionMatrix(randomForestPrediction, modelTesting[, &quot;classe&quot;])
 myMatrix</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 

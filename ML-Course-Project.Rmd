@@ -157,7 +157,7 @@ performance <- cbind(model, Accuracy, Kappa)
 knitr::kable(performance)
 ```
 
-##Cross Validation
+##Cross Validation and Out of Sample Error
 We now predict new values within the test set that we created for random forest, LogitBoost, and SVM(radial) models.  
 
 ```{r Cross Validation, warning=FALSE}
@@ -184,11 +184,10 @@ colnames(secondPrediction) <- c("Random Forest", "SVM (radial)", "SamePrediction
 dim(secondPrediction[secondPrediction$SamePrediction==TRUE,])
 ```
 
-We can calculate the expected out of sample error based on the test set that we created for cross-validation -- using the Random Forest model.  The prediction results with random forest are encouraging in looking at the confusion matrix.  
+We can calculate the expected out of sample error based on the test set that we created for cross-validation -- using the Random Forest model.  The accuracy of the Random Forest model is `r max(randomForest$results$Accuracy)*100`%. So I expect the out of sample error estimate to be less than `r 7846 - 7846*max(randomForest$results$Accuracy)`, where 7,846 is the number of rows in the modelTesting dataset. The prediction results with random forest are encouraging in looking at the confusion matrix.  The confusionMatrix shows that 24 predictions are inaccurate, which is better than my expected out of sample error estimate.  
 
 ```{r Cross Validation Confusion Matrix, warning=FALSE}
-# note:  Column 54 is the "classe" column
-myMatrix <- confusionMatrix(randomForestPrediction, modelTesting[, 54])
+myMatrix <- confusionMatrix(randomForestPrediction, modelTesting[, "classe"])
 myMatrix
 ```
 
