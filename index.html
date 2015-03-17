@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Ml-project : Machine Learning on Coursera">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Ml-project</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/Patel4721/ML-Project">View on GitHub</a>
+
+          <h1 id="project_title">Ml-project</h1>
+          <h2 id="project_tagline">Machine Learning on Coursera</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/Patel4721/ML-Project/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/Patel4721/ML-Project/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <p>&lt;!DOCTYPE html&gt;</p>
+
+<p></p>
+
+<p></p>
+
+<p>
+
+</p>
+
+<p></p>
+
+<p></p>
+
+<p></p>Machine Learning Course Project
+
+
+
+<p>
+
+</p>
+
+
+
+code{white-space: pre;}
+
+<p></p>
+
+
+
+
+  pre:not([class]) {
+    background-color: white;
+  }
+
+
+
+
+<p></p>
+
+<p></p>
+
+
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+<div>
+
+
+<div id="header">
+<h1>
+<a id="machine-learning-course-project" class="anchor" href="#machine-learning-course-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Machine Learning Course Project</h1>
+<h4>
+<a id="shailesh-patel" class="anchor" href="#shailesh-patel" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>Shailesh Patel</em>
+</h4>
+<h4>
+<a id="march-22-2015" class="anchor" href="#march-22-2015" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>March 22, 2015</em>
+</h4>
+</div>
+
+<div id="background">
+<h1>
+<a id="background" class="anchor" href="#background" aria-hidden="true"><span class="octicon octicon-link"></span></a>Background</h1>
+<p>This project is related to Human Activity Research (HAR) and the use of personal activity data captured via devices such as Jawbone Up, Nike FuelBand, and Fitbit. The dataset contains data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions. We are provided a data set from:</p>
+<p><a href="http://groupware.les.inf.puc-rio.br/har">http://groupware.les.inf.puc-rio.br/har</a></p>
+<p>Our goal is to use the data set to predict the quality of the exercise the user conducted. The quality outcome is defined as classes as follows:</p>
+<p>A - exactly according to the specification B - throwing the elbows to the front C - lifting the dumbbell only halfway D - lowering the dumbbell only halfway E - throwing the hips to the front</p>
+</div>
+
+<div id="reproducibility">
+<h1>
+<a id="reproducibility" class="anchor" href="#reproducibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reproducibility</h1>
+<p>We will first load the necessary libraries and set the seed.</p>
+<pre><code># Install and load the libraries we will need - only if needed
+list.of.packages &lt;- c("caret", 
+                      "kernlab", 
+                      "randomForest", 
+                      "Hmisc", 
+                      "abind", 
+                      "arm", 
+                      "rpart", 
+                      "doParallel")
+new.packages &lt;- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+library(caret)</code></pre>
+<pre><code>## Loading required package: lattice
+## Loading required package: ggplot2</code></pre>
+<pre><code>library(kernlab)
+library(randomForest)</code></pre>
+<pre><code>## randomForest 4.6-10
+## Type rfNews() to see new features/changes/bug fixes.</code></pre>
+<pre><code>library(Hmisc)</code></pre>
+<pre><code>## Loading required package: grid
+## Loading required package: survival
+## Loading required package: splines
+## 
+## Attaching package: 'survival'
+## 
+## The following object is masked from 'package:caret':
+## 
+##     cluster
+## 
+## Loading required package: Formula
+## 
+## Attaching package: 'Hmisc'
+## 
+## The following object is masked from 'package:randomForest':
+## 
+##     combine
+## 
+## The following objects are masked from 'package:base':
+## 
+##     format.pval, round.POSIXt, trunc.POSIXt, units</code></pre>
+<pre><code>library(abind)
+library(arm)</code></pre>
+<pre><code>## Loading required package: MASS
+## Loading required package: Matrix
+## Loading required package: lme4
+## Loading required package: Rcpp
+## 
+## arm (Version 1.7-07, built: 2014-8-27)
+## 
+## Working directory is /Users/shaileshpatel/Library/Mobile Documents/com~apple~CloudDocs/Coursera/Machine Learning/Course Project/ML-Project</code></pre>
+<pre><code>library(rpart)
+library(doParallel)</code></pre>
+<pre><code>## Loading required package: foreach
+## Loading required package: iterators
+## Loading required package: parallel</code></pre>
+<pre><code>set.seed(8666)</code></pre>
+</div>
+
+<div id="data">
+<h1>
+<a id="data" class="anchor" href="#data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data</h1>
+<div id="load-libraries-and-download-data">
+<h2>
+<a id="load-libraries-and-download-data" class="anchor" href="#load-libraries-and-download-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Load Libraries and Download Data</h2>
+<p>The training data for this project wre loaded from the following URLs:</p>
+<p>Training data: <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv</a></p>
+<p>Test data: <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv</a></p>
+<p>Download the data for training and for final testing. We call the testing data “final testing” data to avoid confusion with the test set we’ll create to validate our model. Final testing is used for the submission of the results of this work.</p>
+<pre><code>trainingcsv &lt;- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testingcsv &lt;- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+download.file(trainingcsv, "pml-training.csv", method="curl")
+download.file(testingcsv, "pml-testing.csv", method="curl")
+
+date() # Log the date and time when the file is downloaded</code></pre>
+<pre><code>## [1] "Mon Mar 16 21:16:55 2015"</code></pre>
+<pre><code>trainingData &lt;- read.csv("pml-training.csv")
+finalTestingData &lt;- read.csv("pml-testing.csv")</code></pre>
+</div>
+
+<div id="cleaning-data">
+<h2>
+<a id="cleaning-data" class="anchor" href="#cleaning-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cleaning Data</h2>
+<p>Make sure all the column names between the training and final testing data sets are identical. We know the final testing data does not contain the “classe” column.</p>
+<pre><code>all.equal(colnames(finalTestingData)[1:length(colnames(finalTestingData))-1], colnames(trainingData)[1:length(colnames(trainingData))-1])</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<p>To clean the data, we are first removing the near zero variance predictors. Many variables have a high degree of correlation.</p>
+<pre><code>nzvValues &lt;- nearZeroVar(trainingData)
+trainingData &lt;- trainingData[, -nzvValues]
+dim(trainingData)</code></pre>
+<pre><code>## [1] 19622   100</code></pre>
+<p>We then remove the first five predictors/columns of the training data id, user names, and time stamps are not very useful with models.</p>
+<pre><code>trainingData &lt;- trainingData[, -(1:5)]
+dim(trainingData)</code></pre>
+<pre><code>## [1] 19622    95</code></pre>
+<p>Lastly, we remove columns with too many NA’s. We want to reduce predictors with more than 60% missing data.</p>
+<pre><code>remove &lt;- sapply(colnames(trainingData), function(x) if(sum(is.na(trainingData[, x])) 
+                                                        &gt; 0.60*nrow(trainingData))
+  {return(TRUE)
+} else {
+return(FALSE)})
+trainingData &lt;- trainingData[, !remove]
+dim(trainingData)</code></pre>
+<pre><code>## [1] 19622    54</code></pre>
+<p>After cleaning the data the following predictors are included in the models.</p>
+<pre><code>names(trainingData)</code></pre>
+<pre><code>##  [1] "num_window"           "roll_belt"            "pitch_belt"          
+##  [4] "yaw_belt"             "total_accel_belt"     "gyros_belt_x"        
+##  [7] "gyros_belt_y"         "gyros_belt_z"         "accel_belt_x"        
+## [10] "accel_belt_y"         "accel_belt_z"         "magnet_belt_x"       
+## [13] "magnet_belt_y"        "magnet_belt_z"        "roll_arm"            
+## [16] "pitch_arm"            "yaw_arm"              "total_accel_arm"     
+## [19] "gyros_arm_x"          "gyros_arm_y"          "gyros_arm_z"         
+## [22] "accel_arm_x"          "accel_arm_y"          "accel_arm_z"         
+## [25] "magnet_arm_x"         "magnet_arm_y"         "magnet_arm_z"        
+## [28] "roll_dumbbell"        "pitch_dumbbell"       "yaw_dumbbell"        
+## [31] "total_accel_dumbbell" "gyros_dumbbell_x"     "gyros_dumbbell_y"    
+## [34] "gyros_dumbbell_z"     "accel_dumbbell_x"     "accel_dumbbell_y"    
+## [37] "accel_dumbbell_z"     "magnet_dumbbell_x"    "magnet_dumbbell_y"   
+## [40] "magnet_dumbbell_z"    "roll_forearm"         "pitch_forearm"       
+## [43] "yaw_forearm"          "total_accel_forearm"  "gyros_forearm_x"     
+## [46] "gyros_forearm_y"      "gyros_forearm_z"      "accel_forearm_x"     
+## [49] "accel_forearm_y"      "accel_forearm_z"      "magnet_forearm_x"    
+## [52] "magnet_forearm_y"     "magnet_forearm_z"     "classe"</code></pre>
+</div>
+
+<div id="partitioning-data">
+<h2>
+<a id="partitioning-data" class="anchor" href="#partitioning-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Partitioning Data</h2>
+<p>We’ll first partition the data so that 60% of the data will be used for training and 40% will be used for testing the models.</p>
+<pre><code>inTrain &lt;- createDataPartition(y=trainingData$classe, p=0.6, list=FALSE)
+modelTraining &lt;- trainingData[inTrain, ]
+modelTesting &lt;- trainingData[-inTrain, ]
+dim(modelTraining)</code></pre>
+<pre><code>## [1] 11776    54</code></pre>
+<pre><code>dim(modelTesting)</code></pre>
+<pre><code>## [1] 7846   54</code></pre>
+</div>
+
+<p></p>
+</div>
+
+<div id="model-development">
+<h1>
+<a id="model-development" class="anchor" href="#model-development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Model Development</h1>
+<div id="selecting-a-model">
+<h2>
+<a id="selecting-a-model" class="anchor" href="#selecting-a-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>Selecting a Model</h2>
+<p>We can now create models based on the pre-processed data set. In order to avoid overfitting and to reduce out of sample errors, we use TrainControl to perform 5-fold cross validation instead of the default 10. The six models estimated are: Random forest, Support Vector Machine (both radial and linear), a Neural net, a Bayes Generalized linear model and a Logit Boosted model. We will also use the parallel library to maximize multiple cores on the host machine.</p>
+<pre><code>library(parallel); library(doParallel)
+registerDoParallel(clust &lt;- makeForkCluster(detectCores()))
+
+# Set up the control for the models
+modelCTRL &lt;- trainControl(method = "cv", number = 5, verboseIter=FALSE , preProcOptions="pca", allowParallel=TRUE)
+
+# Run the six models
+randomForest &lt;- train(classe ~ ., data = modelTraining, method = "rf", trControl= modelCTRL, ntree=50)
+svmr &lt;- train(classe ~ ., data = modelTraining, method = "svmRadial", trControl= modelCTRL)
+neural &lt;- train(classe ~ ., data = modelTraining, method = "nnet", trControl= modelCTRL)</code></pre>
+<pre><code>## Loading required package: nnet</code></pre>
+<pre><code>## # weights:  300
+## initial  value 23498.420355 
+## iter  10 value 18152.661867
+## iter  20 value 17838.638017
+## iter  30 value 17651.741453
+## iter  40 value 17253.024783
+## iter  50 value 17197.447452
+## iter  60 value 17115.489691
+## iter  70 value 17078.074376
+## iter  80 value 16996.162075
+## iter  90 value 16923.557894
+## iter 100 value 16808.585949
+## final  value 16808.585949 
+## stopped after 100 iterations</code></pre>
+<pre><code>svml &lt;- train(classe ~ ., data = modelTraining, method = "svmLinear", trControl= modelCTRL)
+bayesglm &lt;- train(classe ~ ., data = modelTraining, method = "bayesglm", trControl= modelCTRL)
+logitboost &lt;- train(classe ~ ., data = modelTraining, method = "LogitBoost", trControl= modelCTRL)</code></pre>
+<pre><code>## Loading required package: caTools</code></pre>
+<pre><code>stopCluster(clust)</code></pre>
+<p>Let’s compare the accuracy of the models. Random Forest, LogitBoost, and SVM (radial) have the best accuracy of all size models.</p>
+<pre><code>model &lt;- c("Random Forest","LogitBoost","SVM (radial)", "SVM (linear)", "Neural Net", "Bayes GLM")
+Accuracy &lt;- c(max(randomForest$results$Accuracy),
+         max(logitboost$results$Accuracy),
+         max(svmr$results$Accuracy),
+         max(svml$results$Accuracy),
+         max(neural$results$Accuracy),
+         max(bayesglm$results$Accuracy))
+        
+Kappa &lt;- c(max(randomForest$results$Kappa),
+         max(logitboost$results$Kappa),
+         max(svmr$results$Kappa),
+         max(svml$results$Kappa),
+         max(neural$results$Kappa),
+         max(bayesglm$results$Kappa))  
+
+performance &lt;- cbind(model, Accuracy, Kappa)
+knitr::kable(performance)</code></pre>
+<table>
+<thead>
+<tr>
+<th align="left">model</th>
+<th align="left">Accuracy</th>
+<th align="left">Kappa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">Random Forest</td>
+<td align="left">0.994735472091063</td>
+<td align="left">0.993340443450489</td>
+</tr>
+<tr>
+<td align="left">LogitBoost</td>
+<td align="left">0.92972348753086</td>
+<td align="left">0.910549154246006</td>
+</tr>
+<tr>
+<td align="left">SVM (radial)</td>
+<td align="left">0.917714570664534</td>
+<td align="left">0.895782596238381</td>
+</tr>
+<tr>
+<td align="left">SVM (linear)</td>
+<td align="left">0.787109308208236</td>
+<td align="left">0.729396971598701</td>
+</tr>
+<tr>
+<td align="left">Neural Net</td>
+<td align="left">0.429100417143813</td>
+<td align="left">0.272357745643895</td>
+</tr>
+<tr>
+<td align="left">Bayes GLM</td>
+<td align="left">0.401239518617301</td>
+<td align="left">0.234750696831903</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div id="cross-validation">
+<h2>
+<a id="cross-validation" class="anchor" href="#cross-validation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cross Validation</h2>
+<p>We now predict new values within the test set that we created for random forest, LogitBoost, and SVM(radial) models.</p>
+<pre><code>randomForestPrediction &lt;- predict(randomForest, modelTesting)
+logitboostPrediction &lt;- predict(logitboost, modelTesting)
+svmrPrediction &lt;- predict(svmr, modelTesting)</code></pre>
+<p>Let’s check to see if the models give same predictions. Random Forest and LogitBoost provide the greatest number of matches.</p>
+<pre><code>firstPrediction &lt;- data.frame(cbind(randomForestPrediction, logitboostPrediction))
+firstPrediction$same &lt;- with(firstPrediction, randomForestPrediction == logitboostPrediction)
+colnames(firstPrediction) &lt;- c("Random Forest", "LogitBoost", "SamePrediction")
+
+# Number of matches between Random Forest and LogitBoost
+dim(firstPrediction[firstPrediction$SamePrediction==TRUE,])</code></pre>
+<pre><code>## [1] 7407    3</code></pre>
+<pre><code>secondPrediction &lt;- data.frame(cbind(randomForestPrediction, svmrPrediction))
+secondPrediction$same &lt;- with(secondPrediction, randomForestPrediction == svmrPrediction)
+colnames(secondPrediction) &lt;- c("Random Forest", "SVM (radial)", "SamePrediction")
+
+# Number of matches between Random Forest and SVM (radial)
+dim(secondPrediction[secondPrediction$SamePrediction==TRUE,])</code></pre>
+<pre><code>## [1] 7306    3</code></pre>
+<p>We can calculate the expected out of sample error based on the test set that we created for cross-validation – using the Random Forest model. The prediction results with random forest are encouraging in looking at the confusion matrix.</p>
+<pre><code># note:  Column 54 is the "classe" column
+myMatrix &lt;- confusionMatrix(randomForestPrediction, modelTesting[, 54])
+myMatrix</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 2231    8    0    0    0
+##          B    0 1508    5    0    0
+##          C    0    2 1363    7    0
+##          D    0    0    0 1278    1
+##          E    1    0    0    1 1441
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.9968          
+##                  95% CI : (0.9953, 0.9979)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.996           
+##  Mcnemar's Test P-Value : NA              
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9996   0.9934   0.9963   0.9938   0.9993
+## Specificity            0.9986   0.9992   0.9986   0.9998   0.9997
+## Pos Pred Value         0.9964   0.9967   0.9934   0.9992   0.9986
+## Neg Pred Value         0.9998   0.9984   0.9992   0.9988   0.9998
+## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2843   0.1922   0.1737   0.1629   0.1837
+## Detection Prevalence   0.2854   0.1928   0.1749   0.1630   0.1839
+## Balanced Accuracy      0.9991   0.9963   0.9975   0.9968   0.9995</code></pre>
+</div>
+
+<p></p>
+</div>
+
+<div id="prediction-submission">
+<h1>
+<a id="prediction-submission" class="anchor" href="#prediction-submission" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prediction Submission</h1>
+<p>Generate the files for submission using the final test data provided.</p>
+<pre><code>answers &lt;- predict(randomForest, finalTestingData)
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE, row.names=FALSE, col.names=FALSE)
+  }
+}
+pml_write_files(answers)</code></pre>
+</div>
+
+<p></p>
+</div>
+
+
+
+
+
+
+
+<p>
+</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Ml-project maintained by <a href="https://github.com/Patel4721">Patel4721</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
