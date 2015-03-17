@@ -36,28 +36,13 @@ library(caret)
 ```
 
 ```
-## Warning: package 'caret' was built under R version 3.1.2
-```
-
-```
 ## Loading required package: lattice
 ## Loading required package: ggplot2
 ```
 
 ```r
 library(kernlab)
-```
-
-```
-## Warning: package 'kernlab' was built under R version 3.1.2
-```
-
-```r
 library(randomForest)
-```
-
-```
-## Warning: package 'randomForest' was built under R version 3.1.2
 ```
 
 ```
@@ -67,10 +52,6 @@ library(randomForest)
 
 ```r
 library(Hmisc)
-```
-
-```
-## Warning: package 'Hmisc' was built under R version 3.1.2
 ```
 
 ```
@@ -85,13 +66,6 @@ library(Hmisc)
 ##     cluster
 ## 
 ## Loading required package: Formula
-```
-
-```
-## Warning: package 'Formula' was built under R version 3.1.2
-```
-
-```
 ## 
 ## Attaching package: 'Hmisc'
 ## 
@@ -106,31 +80,13 @@ library(Hmisc)
 
 ```r
 library(abind)
-```
-
-```
-## Warning: package 'abind' was built under R version 3.1.3
-```
-
-```r
 library(arm)
-```
-
-```
-## Warning: package 'arm' was built under R version 3.1.2
 ```
 
 ```
 ## Loading required package: MASS
 ## Loading required package: Matrix
 ## Loading required package: lme4
-```
-
-```
-## Warning: package 'lme4' was built under R version 3.1.2
-```
-
-```
 ## Loading required package: Rcpp
 ## 
 ## arm (Version 1.7-07, built: 2014-8-27)
@@ -144,26 +100,8 @@ library(doParallel)
 ```
 
 ```
-## Warning: package 'doParallel' was built under R version 3.1.2
-```
-
-```
 ## Loading required package: foreach
-```
-
-```
-## Warning: package 'foreach' was built under R version 3.1.2
-```
-
-```
 ## Loading required package: iterators
-```
-
-```
-## Warning: package 'iterators' was built under R version 3.1.2
-```
-
-```
 ## Loading required package: parallel
 ```
 
@@ -193,7 +131,7 @@ date() # Log the date and time when the file is downloaded
 ```
 
 ```
-## [1] "Mon Mar 16 21:01:06 2015"
+## [1] "Mon Mar 16 21:16:55 2015"
 ```
 
 ```r
@@ -339,14 +277,6 @@ neural <- train(classe ~ ., data = modelTraining, method = "nnet", trControl= mo
 ```r
 svml <- train(classe ~ ., data = modelTraining, method = "svmLinear", trControl= modelCTRL)
 bayesglm <- train(classe ~ ., data = modelTraining, method = "bayesglm", trControl= modelCTRL)
-```
-
-```
-## Warning in .bayesglm.fit.loop.printWarnings(Warning, state, family):
-## fitted probabilities numerically 0 or 1 occurred
-```
-
-```r
 logitboost <- train(classe ~ ., data = modelTraining, method = "LogitBoost", trControl= modelCTRL)
 ```
 
@@ -385,11 +315,11 @@ knitr::kable(performance)
 
 model           Accuracy            Kappa             
 --------------  ------------------  ------------------
-Random Forest   0.994480586789449   0.993018234902812 
+Random Forest   0.994735472091063   0.993340443450489 
 LogitBoost      0.92972348753086    0.910549154246006 
 SVM (radial)    0.917714570664534   0.895782596238381 
 SVM (linear)    0.787109308208236   0.729396971598701 
-Neural Net      0.406505101033525   0.246357458623049 
+Neural Net      0.429100417143813   0.272357745643895 
 Bayes GLM       0.401239518617301   0.234750696831903 
 
 ##Cross Validation
