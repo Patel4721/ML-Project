@@ -32,7 +32,10 @@ list.of.packages <- c("caret",
                       "abind", 
                       "arm", 
                       "rpart", 
-                      "doParallel")
+                      "parallel",
+                      "doParallel",
+                      "gbm",
+                      "plyr")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -43,7 +46,10 @@ library(Hmisc)
 library(abind)
 library(arm)
 library(rpart)
+library(parallel)
 library(doParallel)
+library(gbm)
+library(plyr)
 
 set.seed(8666)
 ```
@@ -115,46 +121,48 @@ dim(modelTesting)
 
 #Model Development
 ##Selecting a Model
-We can now create models based on the pre-processed data set. In order to avoid overfitting and to reduce out of sample errors, we use TrainControl to perform 5-fold cross validation instead of the default 10. The six models estimated are: Random forest, Support Vector Machine (both radial and linear), a Neural net, a Bayes Generalized linear model and a Logit Boosted model. We will also use the parallel library to maximize multiple cores on the host machine.  
+We can now create models based on the pre-processed data set. In order to avoid overfitting and to reduce out of sample errors, we use TrainControl to perform 5-fold cross validation instead of the default 10. The seven models estimated are: Random forest, LogitBoost, Tree Boost, Support Vector Machine (both radial and linear), a Neural net, a Bayes Generalized linear model. We will also use the parallel library to maximize multiple cores on the host machine.  
 
 ```{r Model Selection, warning=FALSE}
-library(parallel); library(doParallel)
 registerDoParallel(clust <- makeForkCluster(detectCores()))
 
 # Set up the control for the models
 modelCTRL <- trainControl(method = "cv", number = 5, verboseIter=FALSE , preProcOptions="pca", allowParallel=TRUE)
 
-# Run the six models
+# Run the seven models
 randomForest <- train(classe ~ ., data = modelTraining, method = "rf", trControl= modelCTRL, ntree=50)
 svmr <- train(classe ~ ., data = modelTraining, method = "svmRadial", trControl= modelCTRL)
 neural <- train(classe ~ ., data = modelTraining, method = "nnet", trControl= modelCTRL)
 svml <- train(classe ~ ., data = modelTraining, method = "svmLinear", trControl= modelCTRL)
 bayesglm <- train(classe ~ ., data = modelTraining, method = "bayesglm", trControl= modelCTRL)
 logitboost <- train(classe ~ ., data = modelTraining, method = "LogitBoost", trControl= modelCTRL)
+treeboost <- train(classe ~ ., data = modelTraining, method = "gbm", trControl= modelCTRL, verbose=FALSE)
 
 stopCluster(clust)
 ```
 
-Let's compare the accuracy of the models. Random Forest, LogitBoost, and SVM (radial) have the best accuracy of all size models.  
+Let's compare the accuracy of the models. As show in the table below, Random Forest, Tree Boost, and LogitBoost have the best accuracy of all size models.  
 
 ```{r Model Comparison, warning=FALSE}
-model <- c("Random Forest","LogitBoost","SVM (radial)", "SVM (linear)", "Neural Net", "Bayes GLM")
+model <- c("Random Forest","LogitBoost","SVM (radial)", "SVM (linear)", "Neural Net", "Bayes GLM", "Tree Boost")
 Accuracy <- c(max(randomForest$results$Accuracy),
          max(logitboost$results$Accuracy),
          max(svmr$results$Accuracy),
          max(svml$results$Accuracy),
          max(neural$results$Accuracy),
-         max(bayesglm$results$Accuracy))
+         max(bayesglm$results$Accuracy),
+         max(treeboost$results$Accuracy))
         
 Kappa <- c(max(randomForest$results$Kappa),
          max(logitboost$results$Kappa),
          max(svmr$results$Kappa),
          max(svml$results$Kappa),
          max(neural$results$Kappa),
-         max(bayesglm$results$Kappa))  
+         max(bayesglm$results$Kappa),
+         max(treeboost$results$Kappa))  
 
 performance <- cbind(model, Accuracy, Kappa)
-knitr::kable(performance)
+knitr::kable(performance[order(-Accuracy), ], caption="Model Comparison")
 ```
 
 ##Cross Validation and Out of Sample Error
@@ -164,32 +172,43 @@ We now predict new values within the test set that we created for random forest,
 randomForestPrediction <- predict(randomForest, modelTesting)
 logitboostPrediction <- predict(logitboost, modelTesting)
 svmrPrediction <- predict(svmr, modelTesting)
+treeboostPrediction <- predict(treeboost, modelTesting)
 ```
 
-Let's check to see if the models give same predictions. Random Forest and LogitBoost provide the greatest number of matches.  
+Let's check to see if the models give same predictions. Tree Boost and LogitBoost provide the greatest number of matches with Random Forest.
 
 ```{r Cross Validation Prediction Comparison, warning=FALSE}
 firstPrediction <- data.frame(cbind(randomForestPrediction, logitboostPrediction))
 firstPrediction$same <- with(firstPrediction, randomForestPrediction == logitboostPrediction)
 colnames(firstPrediction) <- c("Random Forest", "LogitBoost", "SamePrediction")
 
-# Number of matches between Random Forest and LogitBoost
-dim(firstPrediction[firstPrediction$SamePrediction==TRUE,])
+secondPrediction <- data.frame(cbind(randomForestPrediction, treeboostPrediction))
+secondPrediction$same <- with(secondPrediction, randomForestPrediction == treeboostPrediction)
+colnames(secondPrediction) <- c("Random Forest", "Tree Boost", "SamePrediction")
 
-secondPrediction <- data.frame(cbind(randomForestPrediction, svmrPrediction))
-secondPrediction$same <- with(secondPrediction, randomForestPrediction == svmrPrediction)
-colnames(secondPrediction) <- c("Random Forest", "SVM (radial)", "SamePrediction")
+firstMatch <- nrow(firstPrediction[firstPrediction$SamePrediction==TRUE,])
+secondMatch <- nrow(secondPrediction[secondPrediction$SamePrediction==TRUE,])
 
-# Number of matches between Random Forest and SVM (radial)
-dim(secondPrediction[secondPrediction$SamePrediction==TRUE,])
+matchResults <- data.frame(firstMatch, secondMatch)
+colnames(matchResults) <- c("LogitBoost", "Tree Boost")
+knitr::kable(matchResults, caption="Number of Matches with Random Forest")
 ```
 
-We can calculate the expected out of sample error based on the test set that we created for cross-validation -- using the Random Forest model.  The accuracy of the Random Forest model is `r max(randomForest$results$Accuracy)*100`%. So I expect the out of sample error estimate to be less than `r 7846 - 7846*max(randomForest$results$Accuracy)`, where 7,846 is the number of rows in the modelTesting dataset. The prediction results with random forest are encouraging in looking at the confusion matrix.  The confusionMatrix shows that 24 predictions are inaccurate, which is better than my expected out of sample error estimate.  
+We can calculate the expected out of sample error based on the test set that we created for cross-validation -- using the Random Forest model.  
 
 ```{r Cross Validation Confusion Matrix, warning=FALSE}
+# Create matrix with 1's in diagonal so we can use that to get only the diagonal
+# in the confustionMatrix.  This is needed to calculate the number of observations
+# that are errors.
+
 myMatrix <- confusionMatrix(randomForestPrediction, modelTesting[, "classe"])
-myMatrix
+n <- matrix(c(1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1), nrow=5, ncol=5)
+nonerror <- sum(myMatrix$table * n) # the number of observations without errors
+totalobservations <- sum(myMatrix$table) # the number of total observations
+myMatrix # show the confustionMatrix
+
 ```
+The accuracy of the Random Forest model is `r max(randomForest$results$Accuracy)*100`%. So I expect the out of sample error estimate to be less than `r 7846 - 7846*max(randomForest$results$Accuracy)` out of 7,846 observations in the modelTesting dataset. The prediction results with random forest are encouraging in looking at the confusion matrix.  The confusionMatrix shows that `r totalobservations - nonerror` predictions are inaccurate, which is better than my expected out of sample error estimate.  
 
 #Prediction Submission
 Generate the files for submission using the final test data provided.

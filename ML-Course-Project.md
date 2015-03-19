@@ -28,7 +28,10 @@ list.of.packages <- c("caret",
                       "abind", 
                       "arm", 
                       "rpart", 
-                      "doParallel")
+                      "parallel",
+                      "doParallel",
+                      "gbm",
+                      "plyr")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -96,13 +99,34 @@ library(arm)
 
 ```r
 library(rpart)
+library(parallel)
 library(doParallel)
 ```
 
 ```
 ## Loading required package: foreach
 ## Loading required package: iterators
-## Loading required package: parallel
+```
+
+```r
+library(gbm)
+```
+
+```
+## Loaded gbm 2.1.1
+```
+
+```r
+library(plyr)
+```
+
+```
+## 
+## Attaching package: 'plyr'
+## 
+## The following objects are masked from 'package:Hmisc':
+## 
+##     is.discrete, summarize
 ```
 
 ```r
@@ -131,7 +155,7 @@ date() # Log the date and time when the file is downloaded
 ```
 
 ```
-## [1] "Mon Mar 16 23:35:47 2015"
+## [1] "Wed Mar 18 20:32:16 2015"
 ```
 
 ```r
@@ -237,17 +261,16 @@ dim(modelTesting)
 
 #Model Development
 ##Selecting a Model
-We can now create models based on the pre-processed data set. In order to avoid overfitting and to reduce out of sample errors, we use TrainControl to perform 5-fold cross validation instead of the default 10. The six models estimated are: Random forest, Support Vector Machine (both radial and linear), a Neural net, a Bayes Generalized linear model and a Logit Boosted model. We will also use the parallel library to maximize multiple cores on the host machine.  
+We can now create models based on the pre-processed data set. In order to avoid overfitting and to reduce out of sample errors, we use TrainControl to perform 5-fold cross validation instead of the default 10. The seven models estimated are: Random forest, LogitBoost, Tree Boost, Support Vector Machine (both radial and linear), a Neural net, a Bayes Generalized linear model. We will also use the parallel library to maximize multiple cores on the host machine.  
 
 
 ```r
-library(parallel); library(doParallel)
 registerDoParallel(clust <- makeForkCluster(detectCores()))
 
 # Set up the control for the models
 modelCTRL <- trainControl(method = "cv", number = 5, verboseIter=FALSE , preProcOptions="pca", allowParallel=TRUE)
 
-# Run the six models
+# Run the seven models
 randomForest <- train(classe ~ ., data = modelTraining, method = "rf", trControl= modelCTRL, ntree=50)
 svmr <- train(classe ~ ., data = modelTraining, method = "svmRadial", trControl= modelCTRL)
 neural <- train(classe ~ ., data = modelTraining, method = "nnet", trControl= modelCTRL)
@@ -259,18 +282,18 @@ neural <- train(classe ~ ., data = modelTraining, method = "nnet", trControl= mo
 
 ```
 ## # weights:  300
-## initial  value 23503.680401 
-## iter  10 value 18281.619047
-## iter  20 value 17962.866579
-## iter  30 value 17154.108235
-## iter  40 value 16969.304281
-## iter  50 value 16803.429215
-## iter  60 value 16650.033797
-## iter  70 value 16504.447574
-## iter  80 value 16480.448570
-## iter  90 value 16375.929941
-## iter 100 value 16315.117373
-## final  value 16315.117373 
+## initial  value 23498.425615 
+## iter  10 value 18092.326727
+## iter  20 value 17951.564994
+## iter  30 value 17682.125096
+## iter  40 value 17491.343040
+## iter  50 value 17386.952616
+## iter  60 value 16861.470900
+## iter  70 value 16742.101261
+## iter  80 value 16664.819647
+## iter  90 value 16613.485035
+## iter 100 value 16588.749644
+## final  value 16588.749644 
 ## stopped after 100 iterations
 ```
 
@@ -285,41 +308,48 @@ logitboost <- train(classe ~ ., data = modelTraining, method = "LogitBoost", trC
 ```
 
 ```r
+treeboost <- train(classe ~ ., data = modelTraining, method = "gbm", trControl= modelCTRL, verbose=FALSE)
+
 stopCluster(clust)
 ```
 
-Let's compare the accuracy of the models. Random Forest, LogitBoost, and SVM (radial) have the best accuracy of all size models.  
+Let's compare the accuracy of the models. As show in the table below, Random Forest, Tree Boost, and LogitBoost have the best accuracy of all size models.  
 
 
 ```r
-model <- c("Random Forest","LogitBoost","SVM (radial)", "SVM (linear)", "Neural Net", "Bayes GLM")
+model <- c("Random Forest","LogitBoost","SVM (radial)", "SVM (linear)", "Neural Net", "Bayes GLM", "Tree Boost")
 Accuracy <- c(max(randomForest$results$Accuracy),
          max(logitboost$results$Accuracy),
          max(svmr$results$Accuracy),
          max(svml$results$Accuracy),
          max(neural$results$Accuracy),
-         max(bayesglm$results$Accuracy))
+         max(bayesglm$results$Accuracy),
+         max(treeboost$results$Accuracy))
         
 Kappa <- c(max(randomForest$results$Kappa),
          max(logitboost$results$Kappa),
          max(svmr$results$Kappa),
          max(svml$results$Kappa),
          max(neural$results$Kappa),
-         max(bayesglm$results$Kappa))  
+         max(bayesglm$results$Kappa),
+         max(treeboost$results$Kappa))  
 
 performance <- cbind(model, Accuracy, Kappa)
-knitr::kable(performance)
+knitr::kable(performance[order(-Accuracy), ], caption="Model Comparison")
 ```
 
 
 
+Table: Model Comparison
+
 model           Accuracy            Kappa             
 --------------  ------------------  ------------------
 Random Forest   0.994735472091063   0.993340443450489 
+Tree Boost      0.982846524571136   0.978301386320314 
 LogitBoost      0.92972348753086    0.910549154246006 
 SVM (radial)    0.917714570664534   0.895782596238381 
 SVM (linear)    0.787109308208236   0.729396971598701 
-Neural Net      0.431975847961046   0.280604261183444 
+Neural Net      0.405827316260918   0.252169262884403 
 Bayes GLM       0.401239518617301   0.234750696831903 
 
 ##Cross Validation and Out of Sample Error
@@ -330,9 +360,10 @@ We now predict new values within the test set that we created for random forest,
 randomForestPrediction <- predict(randomForest, modelTesting)
 logitboostPrediction <- predict(logitboost, modelTesting)
 svmrPrediction <- predict(svmr, modelTesting)
+treeboostPrediction <- predict(treeboost, modelTesting)
 ```
 
-Let's check to see if the models give same predictions. Random Forest and LogitBoost provide the greatest number of matches.  
+Let's check to see if the models give same predictions. Tree Boost and LogitBoost provide the greatest number of matches with Random Forest.
 
 
 ```r
@@ -340,33 +371,39 @@ firstPrediction <- data.frame(cbind(randomForestPrediction, logitboostPrediction
 firstPrediction$same <- with(firstPrediction, randomForestPrediction == logitboostPrediction)
 colnames(firstPrediction) <- c("Random Forest", "LogitBoost", "SamePrediction")
 
-# Number of matches between Random Forest and LogitBoost
-dim(firstPrediction[firstPrediction$SamePrediction==TRUE,])
+secondPrediction <- data.frame(cbind(randomForestPrediction, treeboostPrediction))
+secondPrediction$same <- with(secondPrediction, randomForestPrediction == treeboostPrediction)
+colnames(secondPrediction) <- c("Random Forest", "Tree Boost", "SamePrediction")
+
+firstMatch <- nrow(firstPrediction[firstPrediction$SamePrediction==TRUE,])
+secondMatch <- nrow(secondPrediction[secondPrediction$SamePrediction==TRUE,])
+
+matchResults <- data.frame(firstMatch, secondMatch)
+colnames(matchResults) <- c("LogitBoost", "Tree Boost")
+knitr::kable(matchResults, caption="Number of Matches with Random Forest")
 ```
 
-```
-## [1] 7407    3
-```
+
+
+Table: Number of Matches with Random Forest
+
+ LogitBoost   Tree Boost
+-----------  -----------
+       7407         7754
+
+We can calculate the expected out of sample error based on the test set that we created for cross-validation -- using the Random Forest model.  
+
 
 ```r
-secondPrediction <- data.frame(cbind(randomForestPrediction, svmrPrediction))
-secondPrediction$same <- with(secondPrediction, randomForestPrediction == svmrPrediction)
-colnames(secondPrediction) <- c("Random Forest", "SVM (radial)", "SamePrediction")
+# Create matrix with 1's in diagonal so we can use that to get only the diagonal
+# in the confustionMatrix.  This is needed to calculate the number of observations
+# that are errors.
 
-# Number of matches between Random Forest and SVM (radial)
-dim(secondPrediction[secondPrediction$SamePrediction==TRUE,])
-```
-
-```
-## [1] 7306    3
-```
-
-We can calculate the expected out of sample error based on the test set that we created for cross-validation -- using the Random Forest model.  The accuracy of the Random Forest model is 99.4735472%. So I expect the out of sample error estimate to be less than 41.305486, where 7,846 is the number of rows in the modelTesting dataset. The prediction results with random forest are encouraging in looking at the confusion matrix.  The confusionMatrix shows that 24 predictions are inaccurate, which is better than my expected out of sample error estimate.  
-
-
-```r
 myMatrix <- confusionMatrix(randomForestPrediction, modelTesting[, "classe"])
-myMatrix
+n <- matrix(c(1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1), nrow=5, ncol=5)
+nonerror <- sum(myMatrix$table * n) # the number of observations without errors
+totalobservations <- sum(myMatrix$table) # the number of total observations
+myMatrix # show the confustionMatrix
 ```
 
 ```
@@ -376,32 +413,33 @@ myMatrix
 ## Prediction    A    B    C    D    E
 ##          A 2231    8    0    0    0
 ##          B    0 1508    5    0    0
-##          C    0    2 1363    7    0
-##          D    0    0    0 1278    1
+##          C    0    2 1363    8    0
+##          D    0    0    0 1277    1
 ##          E    1    0    0    1 1441
 ## 
 ## Overall Statistics
 ##                                           
-##                Accuracy : 0.9968          
-##                  95% CI : (0.9953, 0.9979)
+##                Accuracy : 0.9967          
+##                  95% CI : (0.9951, 0.9978)
 ##     No Information Rate : 0.2845          
 ##     P-Value [Acc > NIR] : < 2.2e-16       
 ##                                           
-##                   Kappa : 0.996           
+##                   Kappa : 0.9958          
 ##  Mcnemar's Test P-Value : NA              
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.9996   0.9934   0.9963   0.9938   0.9993
-## Specificity            0.9986   0.9992   0.9986   0.9998   0.9997
-## Pos Pred Value         0.9964   0.9967   0.9934   0.9992   0.9986
-## Neg Pred Value         0.9998   0.9984   0.9992   0.9988   0.9998
+## Sensitivity            0.9996   0.9934   0.9963   0.9930   0.9993
+## Specificity            0.9986   0.9992   0.9985   0.9998   0.9997
+## Pos Pred Value         0.9964   0.9967   0.9927   0.9992   0.9986
+## Neg Pred Value         0.9998   0.9984   0.9992   0.9986   0.9998
 ## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
-## Detection Rate         0.2843   0.1922   0.1737   0.1629   0.1837
-## Detection Prevalence   0.2854   0.1928   0.1749   0.1630   0.1839
-## Balanced Accuracy      0.9991   0.9963   0.9975   0.9968   0.9995
+## Detection Rate         0.2843   0.1922   0.1737   0.1628   0.1837
+## Detection Prevalence   0.2854   0.1928   0.1750   0.1629   0.1839
+## Balanced Accuracy      0.9991   0.9963   0.9974   0.9964   0.9995
 ```
+The accuracy of the Random Forest model is 99.4735472%. So I expect the out of sample error estimate to be less than 41.305486 out of 7,846 observations in the modelTesting dataset. The prediction results with random forest are encouraging in looking at the confusion matrix.  The confusionMatrix shows that 26 predictions are inaccurate, which is better than my expected out of sample error estimate.  
 
 #Prediction Submission
 Generate the files for submission using the final test data provided.

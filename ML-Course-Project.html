@@ -77,7 +77,10 @@ list.of.packages &lt;- c(&quot;caret&quot;,
                       &quot;abind&quot;, 
                       &quot;arm&quot;, 
                       &quot;rpart&quot;, 
-                      &quot;doParallel&quot;)
+                      &quot;parallel&quot;,
+                      &quot;doParallel&quot;,
+                      &quot;gbm&quot;,
+                      &quot;plyr&quot;)
 new.packages &lt;- list.of.packages[!(list.of.packages %in% installed.packages()[,&quot;Package&quot;])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -121,10 +124,19 @@ library(arm)</code></pre>
 ## 
 ## Working directory is /Users/shaileshpatel/Library/Mobile Documents/com~apple~CloudDocs/Coursera/Machine Learning/Course Project/ML-Project</code></pre>
 <pre class="r"><code>library(rpart)
+library(parallel)
 library(doParallel)</code></pre>
 <pre><code>## Loading required package: foreach
-## Loading required package: iterators
-## Loading required package: parallel</code></pre>
+## Loading required package: iterators</code></pre>
+<pre class="r"><code>library(gbm)</code></pre>
+<pre><code>## Loaded gbm 2.1.1</code></pre>
+<pre class="r"><code>library(plyr)</code></pre>
+<pre><code>## 
+## Attaching package: 'plyr'
+## 
+## The following objects are masked from 'package:Hmisc':
+## 
+##     is.discrete, summarize</code></pre>
 <pre class="r"><code>set.seed(8666)</code></pre>
 </div>
 <div id="data" class="section level1">
@@ -142,7 +154,7 @@ download.file(trainingcsv, &quot;pml-training.csv&quot;, method=&quot;curl&quot;
 download.file(testingcsv, &quot;pml-testing.csv&quot;, method=&quot;curl&quot;)
 
 date() # Log the date and time when the file is downloaded</code></pre>
-<pre><code>## [1] &quot;Mon Mar 16 23:35:47 2015&quot;</code></pre>
+<pre><code>## [1] &quot;Wed Mar 18 20:32:16 2015&quot;</code></pre>
 <pre class="r"><code>trainingData &lt;- read.csv(&quot;pml-training.csv&quot;)
 finalTestingData &lt;- read.csv(&quot;pml-testing.csv&quot;)</code></pre>
 </div>
@@ -206,56 +218,60 @@ dim(modelTraining)</code></pre>
 <h1>Model Development</h1>
 <div id="selecting-a-model" class="section level2">
 <h2>Selecting a Model</h2>
-<p>We can now create models based on the pre-processed data set. In order to avoid overfitting and to reduce out of sample errors, we use TrainControl to perform 5-fold cross validation instead of the default 10. The six models estimated are: Random forest, Support Vector Machine (both radial and linear), a Neural net, a Bayes Generalized linear model and a Logit Boosted model. We will also use the parallel library to maximize multiple cores on the host machine.</p>
-<pre class="r"><code>library(parallel); library(doParallel)
-registerDoParallel(clust &lt;- makeForkCluster(detectCores()))
+<p>We can now create models based on the pre-processed data set. In order to avoid overfitting and to reduce out of sample errors, we use TrainControl to perform 5-fold cross validation instead of the default 10. The seven models estimated are: Random forest, LogitBoost, Tree Boost, Support Vector Machine (both radial and linear), a Neural net, a Bayes Generalized linear model. We will also use the parallel library to maximize multiple cores on the host machine.</p>
+<pre class="r"><code>registerDoParallel(clust &lt;- makeForkCluster(detectCores()))
 
 # Set up the control for the models
 modelCTRL &lt;- trainControl(method = &quot;cv&quot;, number = 5, verboseIter=FALSE , preProcOptions=&quot;pca&quot;, allowParallel=TRUE)
 
-# Run the six models
+# Run the seven models
 randomForest &lt;- train(classe ~ ., data = modelTraining, method = &quot;rf&quot;, trControl= modelCTRL, ntree=50)
 svmr &lt;- train(classe ~ ., data = modelTraining, method = &quot;svmRadial&quot;, trControl= modelCTRL)
 neural &lt;- train(classe ~ ., data = modelTraining, method = &quot;nnet&quot;, trControl= modelCTRL)</code></pre>
 <pre><code>## Loading required package: nnet</code></pre>
 <pre><code>## # weights:  300
-## initial  value 23503.680401 
-## iter  10 value 18281.619047
-## iter  20 value 17962.866579
-## iter  30 value 17154.108235
-## iter  40 value 16969.304281
-## iter  50 value 16803.429215
-## iter  60 value 16650.033797
-## iter  70 value 16504.447574
-## iter  80 value 16480.448570
-## iter  90 value 16375.929941
-## iter 100 value 16315.117373
-## final  value 16315.117373 
+## initial  value 23498.425615 
+## iter  10 value 18092.326727
+## iter  20 value 17951.564994
+## iter  30 value 17682.125096
+## iter  40 value 17491.343040
+## iter  50 value 17386.952616
+## iter  60 value 16861.470900
+## iter  70 value 16742.101261
+## iter  80 value 16664.819647
+## iter  90 value 16613.485035
+## iter 100 value 16588.749644
+## final  value 16588.749644 
 ## stopped after 100 iterations</code></pre>
 <pre class="r"><code>svml &lt;- train(classe ~ ., data = modelTraining, method = &quot;svmLinear&quot;, trControl= modelCTRL)
 bayesglm &lt;- train(classe ~ ., data = modelTraining, method = &quot;bayesglm&quot;, trControl= modelCTRL)
 logitboost &lt;- train(classe ~ ., data = modelTraining, method = &quot;LogitBoost&quot;, trControl= modelCTRL)</code></pre>
 <pre><code>## Loading required package: caTools</code></pre>
-<pre class="r"><code>stopCluster(clust)</code></pre>
-<p>Let’s compare the accuracy of the models. Random Forest, LogitBoost, and SVM (radial) have the best accuracy of all size models.</p>
-<pre class="r"><code>model &lt;- c(&quot;Random Forest&quot;,&quot;LogitBoost&quot;,&quot;SVM (radial)&quot;, &quot;SVM (linear)&quot;, &quot;Neural Net&quot;, &quot;Bayes GLM&quot;)
+<pre class="r"><code>treeboost &lt;- train(classe ~ ., data = modelTraining, method = &quot;gbm&quot;, trControl= modelCTRL, verbose=FALSE)
+
+stopCluster(clust)</code></pre>
+<p>Let’s compare the accuracy of the models. As show in the table below, Random Forest, Tree Boost, and LogitBoost have the best accuracy of all size models.</p>
+<pre class="r"><code>model &lt;- c(&quot;Random Forest&quot;,&quot;LogitBoost&quot;,&quot;SVM (radial)&quot;, &quot;SVM (linear)&quot;, &quot;Neural Net&quot;, &quot;Bayes GLM&quot;, &quot;Tree Boost&quot;)
 Accuracy &lt;- c(max(randomForest$results$Accuracy),
          max(logitboost$results$Accuracy),
          max(svmr$results$Accuracy),
          max(svml$results$Accuracy),
          max(neural$results$Accuracy),
-         max(bayesglm$results$Accuracy))
+         max(bayesglm$results$Accuracy),
+         max(treeboost$results$Accuracy))
         
 Kappa &lt;- c(max(randomForest$results$Kappa),
          max(logitboost$results$Kappa),
          max(svmr$results$Kappa),
          max(svml$results$Kappa),
          max(neural$results$Kappa),
-         max(bayesglm$results$Kappa))  
+         max(bayesglm$results$Kappa),
+         max(treeboost$results$Kappa))  
 
 performance &lt;- cbind(model, Accuracy, Kappa)
-knitr::kable(performance)</code></pre>
+knitr::kable(performance[order(-Accuracy), ], caption=&quot;Model Comparison&quot;)</code></pre>
 <table>
+<caption>Model Comparison</caption>
 <thead>
 <tr class="header">
 <th align="left">model</th>
@@ -270,26 +286,31 @@ knitr::kable(performance)</code></pre>
 <td align="left">0.993340443450489</td>
 </tr>
 <tr class="even">
+<td align="left">Tree Boost</td>
+<td align="left">0.982846524571136</td>
+<td align="left">0.978301386320314</td>
+</tr>
+<tr class="odd">
 <td align="left">LogitBoost</td>
 <td align="left">0.92972348753086</td>
 <td align="left">0.910549154246006</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">SVM (radial)</td>
 <td align="left">0.917714570664534</td>
 <td align="left">0.895782596238381</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">SVM (linear)</td>
 <td align="left">0.787109308208236</td>
 <td align="left">0.729396971598701</td>
 </tr>
-<tr class="odd">
-<td align="left">Neural Net</td>
-<td align="left">0.431975847961046</td>
-<td align="left">0.280604261183444</td>
-</tr>
 <tr class="even">
+<td align="left">Neural Net</td>
+<td align="left">0.405827316260918</td>
+<td align="left">0.252169262884403</td>
+</tr>
+<tr class="odd">
 <td align="left">Bayes GLM</td>
 <td align="left">0.401239518617301</td>
 <td align="left">0.234750696831903</td>
@@ -302,56 +323,80 @@ knitr::kable(performance)</code></pre>
 <p>We now predict new values within the test set that we created for random forest, LogitBoost, and SVM(radial) models.</p>
 <pre class="r"><code>randomForestPrediction &lt;- predict(randomForest, modelTesting)
 logitboostPrediction &lt;- predict(logitboost, modelTesting)
-svmrPrediction &lt;- predict(svmr, modelTesting)</code></pre>
-<p>Let’s check to see if the models give same predictions. Random Forest and LogitBoost provide the greatest number of matches.</p>
+svmrPrediction &lt;- predict(svmr, modelTesting)
+treeboostPrediction &lt;- predict(treeboost, modelTesting)</code></pre>
+<p>Let’s check to see if the models give same predictions. Tree Boost and LogitBoost provide the greatest number of matches with Random Forest.</p>
 <pre class="r"><code>firstPrediction &lt;- data.frame(cbind(randomForestPrediction, logitboostPrediction))
 firstPrediction$same &lt;- with(firstPrediction, randomForestPrediction == logitboostPrediction)
 colnames(firstPrediction) &lt;- c(&quot;Random Forest&quot;, &quot;LogitBoost&quot;, &quot;SamePrediction&quot;)
 
-# Number of matches between Random Forest and LogitBoost
-dim(firstPrediction[firstPrediction$SamePrediction==TRUE,])</code></pre>
-<pre><code>## [1] 7407    3</code></pre>
-<pre class="r"><code>secondPrediction &lt;- data.frame(cbind(randomForestPrediction, svmrPrediction))
-secondPrediction$same &lt;- with(secondPrediction, randomForestPrediction == svmrPrediction)
-colnames(secondPrediction) &lt;- c(&quot;Random Forest&quot;, &quot;SVM (radial)&quot;, &quot;SamePrediction&quot;)
+secondPrediction &lt;- data.frame(cbind(randomForestPrediction, treeboostPrediction))
+secondPrediction$same &lt;- with(secondPrediction, randomForestPrediction == treeboostPrediction)
+colnames(secondPrediction) &lt;- c(&quot;Random Forest&quot;, &quot;Tree Boost&quot;, &quot;SamePrediction&quot;)
 
-# Number of matches between Random Forest and SVM (radial)
-dim(secondPrediction[secondPrediction$SamePrediction==TRUE,])</code></pre>
-<pre><code>## [1] 7306    3</code></pre>
-<p>We can calculate the expected out of sample error based on the test set that we created for cross-validation – using the Random Forest model. The accuracy of the Random Forest model is 99.4735472%. So I expect the out of sample error estimate to be less than 41.305486, where 7,846 is the number of rows in the modelTesting dataset. The prediction results with random forest are encouraging in looking at the confusion matrix. The confusionMatrix shows that 24 predictions are inaccurate, which is better than my expected out of sample error estimate.</p>
-<pre class="r"><code>myMatrix &lt;- confusionMatrix(randomForestPrediction, modelTesting[, &quot;classe&quot;])
-myMatrix</code></pre>
+firstMatch &lt;- nrow(firstPrediction[firstPrediction$SamePrediction==TRUE,])
+secondMatch &lt;- nrow(secondPrediction[secondPrediction$SamePrediction==TRUE,])
+
+matchResults &lt;- data.frame(firstMatch, secondMatch)
+colnames(matchResults) &lt;- c(&quot;LogitBoost&quot;, &quot;Tree Boost&quot;)
+knitr::kable(matchResults, caption=&quot;Number of Matches with Random Forest&quot;)</code></pre>
+<table>
+<caption>Number of Matches with Random Forest</caption>
+<thead>
+<tr class="header">
+<th align="right">LogitBoost</th>
+<th align="right">Tree Boost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">7407</td>
+<td align="right">7754</td>
+</tr>
+</tbody>
+</table>
+<p>We can calculate the expected out of sample error based on the test set that we created for cross-validation – using the Random Forest model.</p>
+<pre class="r"><code># Create matrix with 1's in diagonal so we can use that to get only the diagonal
+# in the confustionMatrix.  This is needed to calculate the number of observations
+# that are errors.
+
+myMatrix &lt;- confusionMatrix(randomForestPrediction, modelTesting[, &quot;classe&quot;])
+n &lt;- matrix(c(1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1), nrow=5, ncol=5)
+nonerror &lt;- sum(myMatrix$table * n) # the number of observations without errors
+totalobservations &lt;- sum(myMatrix$table) # the number of total observations
+myMatrix # show the confustionMatrix</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
 ##          A 2231    8    0    0    0
 ##          B    0 1508    5    0    0
-##          C    0    2 1363    7    0
-##          D    0    0    0 1278    1
+##          C    0    2 1363    8    0
+##          D    0    0    0 1277    1
 ##          E    1    0    0    1 1441
 ## 
 ## Overall Statistics
 ##                                           
-##                Accuracy : 0.9968          
-##                  95% CI : (0.9953, 0.9979)
+##                Accuracy : 0.9967          
+##                  95% CI : (0.9951, 0.9978)
 ##     No Information Rate : 0.2845          
 ##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
 ##                                           
-##                   Kappa : 0.996           
+##                   Kappa : 0.9958          
 ##  Mcnemar's Test P-Value : NA              
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.9996   0.9934   0.9963   0.9938   0.9993
-## Specificity            0.9986   0.9992   0.9986   0.9998   0.9997
-## Pos Pred Value         0.9964   0.9967   0.9934   0.9992   0.9986
-## Neg Pred Value         0.9998   0.9984   0.9992   0.9988   0.9998
+## Sensitivity            0.9996   0.9934   0.9963   0.9930   0.9993
+## Specificity            0.9986   0.9992   0.9985   0.9998   0.9997
+## Pos Pred Value         0.9964   0.9967   0.9927   0.9992   0.9986
+## Neg Pred Value         0.9998   0.9984   0.9992   0.9986   0.9998
 ## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
-## Detection Rate         0.2843   0.1922   0.1737   0.1629   0.1837
-## Detection Prevalence   0.2854   0.1928   0.1749   0.1630   0.1839
-## Balanced Accuracy      0.9991   0.9963   0.9975   0.9968   0.9995</code></pre>
+## Detection Rate         0.2843   0.1922   0.1737   0.1628   0.1837
+## Detection Prevalence   0.2854   0.1928   0.1750   0.1629   0.1839
+## Balanced Accuracy      0.9991   0.9963   0.9974   0.9964   0.9995</code></pre>
+<p>The accuracy of the Random Forest model is 99.4735472%. So I expect the out of sample error estimate to be less than 41.305486 out of 7,846 observations in the modelTesting dataset. The prediction results with random forest are encouraging in looking at the confusion matrix. The confusionMatrix shows that 26 predictions are inaccurate, which is better than my expected out of sample error estimate.</p>
 </div>
 </div>
 <div id="prediction-submission" class="section level1">
